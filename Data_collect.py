@@ -1,5 +1,7 @@
 import praw as praw
 import pandas as pd
+import time
+from time import sleep
 
 reddit = praw.Reddit(
     client_id="0GFgVgByJ065sadDY62Q4g",
@@ -25,7 +27,19 @@ for submission in wsb.search('Daily Discussion Thread for', sort='new', time_fil
     if 'Daily Discussion Thread for ' in submission.title:
         if 'June' in submission.title or 'July' in submission.title:
             #I need title, id, comments, score, put into posts_df
-            submission.comments.replace_more(limit=None)
+            result = None
+            last_exception = None
+            timeout = 900 #seconds = 15 minutes
+            time_start = int(time.time())
+            while not result and int(time.time()) < time_Start + timeout:
+                try:
+                    result = submission.comments.replace_more(limit=None)
+                except prawcore.excptions.ServerError as e:
+                    #wait for 30 seconds since sending more requests to overloaded server might not be helping
+                    last_exception = e
+                    time.sleep(30)
+            if not result:
+                raise last_exception
             posts_df = posts_df.append({
                 'id':submission.id,
                 'title':submission.title,
